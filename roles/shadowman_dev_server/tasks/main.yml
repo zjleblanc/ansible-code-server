@@ -14,30 +14,36 @@
 
 - name: Ensure certs directory exists
   ansible.builtin.file:
-    path: "{{ certandkeydestfolder }}"
+    path: "{{ cert_dir_dest }}"
     state: directory
     owner: root
     group: root
     mode: '0741'
-  when: cert_name is defined
+  when: configure_ssl
 
 - name: Copy Cert
   ansible.builtin.copy:
-    src: "{{ certandkeysourcefolder }}{{ cert_name }}"
-    dest: "{{ certandkeydestfolder }}{{ cert_name }}"
+    src: "{{ cert_dir }}/{{ cert_name }}"
+    dest: "{{ cert_dir_dest }}/{{ cert_name }}"
     owner: root
     group: wheel
     mode: '0644'
-  when: cert_name is defined
+  when: configure_ssl
 
 - name: Copy Key
   ansible.builtin.copy:
-    src: "{{ certandkeysourcefolder }}{{ key_name }}"
-    dest: "{{ certandkeydestfolder }}{{ key_name }}"
+    src: "{{ cert_dir }}/{{ key_name }}"
+    dest: "{{ cert_dir_dest }}/{{ key_name }}"
     owner: root
     group: wheel
     mode: '0644'
   when: key_name is defined
+
+- name: Add the user
+  ansible.builtin.user:
+    name: "{{ username }}"
+    group: "{{ username }}"
+    state: present
 
 - name: Apply our systemd service file
   ansible.builtin.template:
@@ -136,7 +142,16 @@
     mode: '0644'
   when: deploy_inventory
 
+- name: Install ansible extension | SSL
+  when: configure_ssl
+  become_user: "{{ username }}"
+  become: true
+  ansible.builtin.command: "/bin/code-server --cert \"{{ cert_dir_dest }}/{{ cert_name }}\" --cert-key \"{{ cert_dir_dest }}/{{ key_name }}\" --install-extension redhat.ansible"
+  register: result
+  changed_when: "'was successfully installed' in result.stdout"
+
 - name: Install ansible extension
+  when: not configure_ssl
   become_user: "{{ username }}"
   become: true
   ansible.builtin.command: "/bin/code-server --install-extension redhat.ansible"
@@ -209,7 +224,7 @@
     chdir: /tmp/
   delegate_to: localhost
   when: deploy_ansiblegalaxy_repo
-  
+
 - name: Copy Example Structure to VM
   ansible.builtin.copy:
     src: /tmp/ansible-example/

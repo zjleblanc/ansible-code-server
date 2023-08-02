@@ -1,0 +1,4 @@
+inventory.ini
+server_config.yml
+ssl/
+**/__pycache__/*

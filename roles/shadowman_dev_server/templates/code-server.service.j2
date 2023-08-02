@@ -1,5 +1,5 @@
 [Unit]
-Description=Code Server IDE
+Description=Code Server IDE ({{ username }})
 After=network.target
 
 [Service]
@@ -7,10 +7,10 @@ Type=simple
 User={{ username }}
 Restart=on-failure
 RestartSec=10
-{% if cert_name is defined %}
-ExecStart=/usr/bin/code-server --cert {{ certandkeydestfolder }}{{ cert_name }} --cert-key {{ certandkeydestfolder }}{{ key_name }}
+{% if configure_ssl is defined and configure_ssl %}
+ExecStart=/usr/bin/code-server --cert "{{ cert_dir_dest }}/{{ cert_name }}" --cert-key "{{ cert_dir_dest }}/{{ key_name }}"
 {% else %}
-ExecStart=/usr/bin/code-server
+ExecStart=/usr/bin/code-server --log debug
 {% endif %}
 ExecStop=/bin/kill -s QUIT $MAINPID
 
